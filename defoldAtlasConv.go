@@ -115,9 +115,11 @@ func toLuaTable(fileName string, tableName string ){
 		// remove the file extension from the image name since image name above produces something like cat.png or dog.jpeg
 		imageExtRegex := regexp.MustCompile(`[.].+`)
 		imageName = imageExtRegex.ReplaceAllString(imageName,"")
+		// keys in table can't include an hypen "-" , so lets replace it with underscore it , if it has one
+		tableKeyName := strings.ReplaceAll(imageName,"-","_")
 		//print(strconv.Itoa(len(imageNameInit))  + " For Image "+strconv.Itoa(i) +" "+ imageName + "\n")
-		luaFileString = luaFileString + "\t" + imageName+"="+quote+imageName+quote+",\n"
-		//
+		luaFileString = luaFileString + "\t" + tableKeyName+"="+quote+imageName+quote+",\n"
+
 	}
 	luaFileString=luaFileString+"}\n"
 	err := ioutil.WriteFile(tableName+".lua", []byte(luaFileString), 0644)
