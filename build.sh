@@ -1,3 +1,3 @@
 #!/bin/bash
-
-go build -o defoldAtlasConv
+echo "Building application...."
+go build -o $APP_NAME && echo "Finished building application"
