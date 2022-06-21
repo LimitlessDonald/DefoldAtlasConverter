@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strconv"
@@ -9,13 +10,34 @@ import (
 )
 
 func main() {
-	atlasFileFlag:=flag.String("atlas","file.atlas","The name of the atlas file with the extension, e.g images.atlas")
-	tableFlag:=flag.String("table","mytable","The name you would like to give your table variable, which would also be the name of the .lua file ")
 
+	atlasFile:=flag.String("atlas","","The name of the atlas file with the extension, e.g images.atlas")
+	//tableFlag:=flag.String("table","mytable","The name you would like to give your table variable, which would also be the name of the .lua file ")
+	//jsonFlag:=flag.String("json","myjson","The name you would like to give your JSON file")
+	outputFile:=flag.String("output","output.lua","The file name and extension you would like to save the file as \n For example myfile.lua myfile.json")
+	//flag.Usage()
 	flag.Parse()
-	toLuaTable(*atlasFileFlag,*tableFlag)
-	print(*atlasFileFlag)
-	print(*tableFlag)
+
+	if strings.Contains(*atlasFile,".atlas"){
+
+
+		if strings.Contains(*outputFile,".lua") {
+			//	This also works If no output file is provided , saves it as output.lua, a lua table
+			toLuaTable(*atlasFile, *outputFile)
+
+		}else if strings.Contains(*outputFile,".json"){
+			toJSON(*atlasFile,*outputFile)
+		}else{
+			// if just a file name is provided without an extension, default to .lua
+			toLuaTable(*atlasFile, *outputFile+".lua")
+		}
+	} else{
+		fmt.Println("Please include a valid .atlas file")
+		flag.Usage()
+	}
+
+	//print(*atlasFileFlag)
+	//print(*tableFlag)
 }
 
 func fileToString(fileName string) string {
@@ -27,13 +49,12 @@ func fileToString(fileName string) string {
 	return string(b)
 }
 
-//toJSON converts the provided string , in this case a defold atlas file into JSON text and
-func toJSON(fileName string)  {
+//toJSON converts the provided string , in this case a defold atlas file into JSON text file
+// fileName is the name of the .atlas file INCLUDING THE EXTENSION
+// JSONfile is the name of the .json file INCLUDING THE EXTENSION
+func toJSON(fileName,JSONfile string)  {
 	atlasString:= fileToString(fileName)
-	// The file name without the extension
-	fileNameWithoutExt:= strings.ReplaceAll(fileName,".atlas","")
-	JSONfile:=fileNameWithoutExt+".json"
-	print(JSONfile)
+
 	// remove spaces
 	atlasString=strings.ReplaceAll(atlasString," ","")
 	//replace images{ with "images":
@@ -47,9 +68,9 @@ func toJSON(fileName string)  {
 	atlasString=strings.ReplaceAll(atlasString,"inner_padding:","\"inner_padding\":")
 	atlasString=strings.ReplaceAll(atlasString,"\"\n\"","\",\n\"")
 	atlasString=strings.ReplaceAll(atlasString,"}\n\"","},\n\"")
-	//apppend opening curly bracket for valid JSON
+	//append opening curly bracket for valid JSON
 	atlasString="{\n"+atlasString+"\n}"
-	//prepariing to replace images with image1-2 etc
+	//preparing to replace images with image1-2 etc
 	//count number of images
 	imagesCount := strings.Count(atlasString,"\"images\"")
 	imagesCountLoop :=1
@@ -67,11 +88,14 @@ func toJSON(fileName string)  {
 
 	writeJSONerr := ioutil.WriteFile(JSONfile, []byte(atlasString),0644)
 	if writeJSONerr != nil {
+		fmt.Println("There was an error converting your atlas file to JSON")
+		flag.Usage()
 		return
 	}
+	fmt.Println("Your JSON file has been saved :"+JSONfile)
 
-	print(atlasString)
-	print("\n")
+	//print(atlasString)
+	//print("\n")
 
 
 }
@@ -90,7 +114,7 @@ func toJSON(fileName string)  {
 //
 // It converts to a lua table like so
 //todo It doesn't handle the image name properly if it starts with a number or contains "-"
-func toLuaTable(fileName string, tableName string ){
+func toLuaTable(fileName string, luaFile string ){
 	// the quote string
 	quote:="\""
 	atlasString:= fileToString(fileName)
@@ -101,6 +125,8 @@ func toLuaTable(fileName string, tableName string ){
 	//-1 indicates there is no limit to how many it should find
 	arrayOfImages := re.FindAllString(atlasString,-1)
 	//build the lua file content
+	//init table name, by removing the extension from the name
+	tableName:=strings.ReplaceAll(luaFile,".lua","")
 	// init the file content with the name of the table and the beginning of the table
 	luaFileString := tableName + " = {\n"
 
@@ -122,10 +148,13 @@ func toLuaTable(fileName string, tableName string ){
 
 	}
 	luaFileString=luaFileString+"}\n"
-	err := ioutil.WriteFile(tableName+".lua", []byte(luaFileString), 0644)
+	err := ioutil.WriteFile(luaFile, []byte(luaFileString), 0644)
 	if err != nil {
-		return 
+		fmt.Println("There was an error converting your atlas file to lua table")
+		flag.Usage()
+		return
 	}
+	fmt.Println("Your lua file has been saved :"+luaFile)
 	
 }
 
